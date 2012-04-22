@@ -7,7 +7,7 @@ def test_single_simple_node():
     Test basic interface with only a single node.
     """
     node = SimpleNode(id=1)
-    cluster = Cluster([node])
+    cluster = Cluster((node,))
 
     # hashing lookup
     assert cluster.location('hello') == node
@@ -41,6 +41,6 @@ def test_simple_node_id_generation():
     """
     Test simple node automatic ID generation.
     """
-    cluster = Cluster([SimpleNode()])
+    cluster = Cluster((SimpleNode(),))
     cluster[0] = 0
     cluster['hello'] = 'world'
