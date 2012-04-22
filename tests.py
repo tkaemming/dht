@@ -1,3 +1,5 @@
+import sys
+
 from dht.cluster import Cluster
 from dht.node import SimpleNode
 
@@ -10,11 +12,14 @@ def test_single_simple_node():
     cluster = Cluster((node,))
 
     # hashing lookup
+    assert cluster.location(0) == node
     assert cluster.location('hello') == node
+    assert cluster.location(sys.maxint) == node
 
     # assignment and retrieval
     cluster['hello'] = 'world'
     assert cluster['hello'] == 'world'
+    assert len(cluster) == 1
 
     # deletion
     del cluster['hello']
@@ -23,6 +28,8 @@ def test_single_simple_node():
         assert False
     except KeyError:
         assert True
+
+    assert len(cluster) == 0
 
 
 def test_multiple_simple_nodes():
