@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from itertools import takewhile
 
-from dht.utils import last
+from dht.utils import last, rehash, quorum
 
 
 class Cluster(object):
@@ -42,5 +42,66 @@ class ConsistentHashingClusterMixin(object):
 
 
 class ReplicatedClusterMixin(object):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError
+    def __init__(self, members, replica_count=3, read_durability=None, write_durability=None, *args, **kwargs):
+        self.replica_count = 3
+        self.read_durability = read_durability
+        self.write_durability = write_durability
+        super(ReplicatedClusterMixin, self).__init__(members, *args, **kwargs)
+
+    # TODO: Actually implement tunable durability/quorums.
+
+    def __getitem__(self, key):
+        keys = self.rehash(key)
+        values = []
+        for key in keys:
+            values.append(super(ReplicatedClusterMixin, self).__getitem__(key, value))
+
+        # TODO: Add conflict resolution logic.
+        assert len(set(values)) == 1
+        return values[0]
+
+    def __setitem__(self, key, value):
+        keys = self.rehash(key)
+        for key in keys:
+            super(ReplicatedClusterMixin, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        keys = self.rehash(key)
+        for key in keys:
+            super(ReplicatedClusterMixin, self).__delitem__(key)
+
+    def rehash(self, key):
+        return map(lambda hash: '%s:%s' % (key, hash),
+            rehash(key, self.replica_count))
+
+    def get_read_durability(self):
+        return getattr(self, '_read_durability', None) or quorum(self.replica_count)
+
+    def set_read_durability(self, value):
+        if value is not None and value < 1:
+            raise ValueError('Read durability must be greater than zero')
+        elif value > self.replica_count:
+            raise ValueError('Read durability may not be greater than the cluster replica count')
+
+        self._read_durability = value
+
+    read_durability = property(get_read_durability, set_read_durability)
+
+    def get_write_durability(self):
+        value = getattr(self, '_write_durability', None)
+        if value is not None:
+            return value
+        else:
+            return quorum(self.replica_count)
+
+    def set_write_durability(self, value):
+        if value > self.replica_count:
+            raise ValueError('Write durability may not be greater than the cluster replica count')
+
+        self._write_durability = value
+
+    write_durability = property(get_write_durability, set_write_durability)
+
+
+class ReplicatedCluster(ReplicatedClusterMixin, Cluster):
+    pass
