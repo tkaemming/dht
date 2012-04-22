@@ -30,9 +30,9 @@ class Cluster(object):
             return last(takewhile(lambda pair: pair[0] <= hashed,
                 self.members.items()))[1]
         except ValueError:
-            # "wrap around" the ring of nodes to the last node if no nodes 
+            # "wrap around" the ring of nodes to the last node if no nodes
             # have a hashed value that is lower than or equal to the hashed
-            # value of any node
+            # value of the key
             return self.members.values()[-1]
 
 
