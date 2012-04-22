@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from contextlib import contextmanager
 from itertools import takewhile
 
 from dht.utils import last, rehash, quorum
@@ -47,6 +48,24 @@ class ReplicatedClusterMixin(object):
         self.read_durability = read_durability
         self.write_durability = write_durability
         super(ReplicatedClusterMixin, self).__init__(members, *args, **kwargs)
+
+    @contextmanager
+    def __call__(self, read_durability=None, write_durability=None):
+        # We need to retrieve the original durability values -- not the
+        # property values -- to allow for dynamic quorum calculation to
+        # continue after the context manager exits.
+        original_read_durability = self._read_durability
+        if read_durability is not None:
+            self.read_durability = read_durability
+
+        original_write_durability = self._write_durability
+        if write_durability is not None:
+            self.write_durability = write_durability
+
+        yield
+
+        self.read_durability = original_read_durability
+        self.write_durability = original_write_durability
 
     # TODO: Actually implement tunable durability/quorums.
 

@@ -113,6 +113,16 @@ def test_replicated_cluster():
     del cluster['hello']
     assert len(node) == 0
 
+    with cluster(read_durability=replicas):
+        assert cluster.read_durability == replicas
+
+    assert cluster.read_durability == quorum(replicas)
+
+    with cluster(write_durability=replicas):
+        assert cluster.write_durability == replicas
+
+    assert cluster.write_durability == quorum(replicas)
+
 
 def test_replicated_conflicts():
     """
